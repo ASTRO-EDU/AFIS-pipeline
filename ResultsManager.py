@@ -98,6 +98,20 @@ def check_results():
 
             copy(os.path.join(SFTP_DIR, f), subdir)
         
+        else:
+            print("directory " + path_dir + " not found, creating new directory..")
+
+            subdir = os.path.join(path_dir, path_splitted[0])
+            pathlib.Path(subdir).mkdir(parents=True, exist_ok=True)
+            copy(os.path.join(SFTP_DIR, f), subdir)
+
+
+
+
+        
+
+
+        
 
 if __name__ == "__main__":
     

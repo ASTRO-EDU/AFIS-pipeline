@@ -1,3 +1,4 @@
+# nohup watch -n 60 python ResultManager.py > watch.txt 
 from config import get_config
 import mysql.connector
 import os

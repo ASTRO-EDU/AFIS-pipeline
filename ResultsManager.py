@@ -5,11 +5,11 @@ import os
 import pathlib
 from os import listdir, makedirs
 import re
-from shutil import copy
+from shutil import copy, move
 
 conf_dict = get_config()
 
-SFTP_DIR = "/data01/sftp/files"
+SFTP_DIR = "/data01/afiss-project/images"
 DEST_DIR_ROOT = "/data01/ANALYSIS3/AFISS/LIGO/"
 
 
@@ -49,7 +49,8 @@ def sequence_conversion(mission, seqnum):
 def mysql_connection():
 
     try:
-        conn = mysql.connector.connect(host=conf_dict["db_host"], user=conf_dict["db_user"], password=conf_dict["db_pass"], database=conf_dict["db_results"],port=int(conf_dict["db_port"]))
+        conn = mysql.connector.connect(host=conf_dict["db_host"], user=conf_dict["db_user"],\
+        password=conf_dict["db_pass"], database=conf_dict["db_results"],port=int(conf_dict["db_port"]))
     
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -61,15 +62,19 @@ def mysql_connection():
 
     cursor = conn.cursor()
 
-    cursor.execute("select name,time,noticetime,triggerid,seqnum from receivedsciencealert rsa \
+    cursor.execute("select name,time,noticetime,triggerid,seqnum,noticeid,afisscheck from receivedsciencealert rsa \
     join instrument i on(i.instrumentid = rsa.instrumentid) join notice n \
     on (n.receivedsciencealertid = rsa.receivedsciencealertid) where i.name = 'LIGO' \
-    and n.notice!='injected.' and noticetime > '2019-06-01' and n.seqnum in (select max(seqnum) \
+    and n.notice!='injected.' and noticetime > '2019-06-01' and afisscheck = 0 and n.seqnum in (select max(seqnum) \
     from notice join receivedsciencealert rsalert on \
     (rsalert.receivedsciencealertid = notice.receivedsciencealertid ) \
     where triggerid = rsa.triggerid) order by triggerid desc")
 
     results = cursor.fetchall()
+
+
+
+
 
     for value in results:
         print(value)
@@ -79,6 +84,12 @@ def mysql_connection():
         path_dir = os.path.join(DEST_DIR_ROOT, sequence_number+"_"+str(value[4]))
         pathlib.Path(path_dir).mkdir(parents=True, exist_ok=True)
 
+        cursor.execute("update notice set afisscheck = 1 where noticeid=%s" % str(value[5]))
+        conn.commit()
+
+    cursor.close()
+    conn.close()
+    
 
 def check_results():
     
@@ -97,21 +108,14 @@ def check_results():
 
             pathlib.Path(subdir).mkdir(parents=True, exist_ok=True)
 
-            copy(os.path.join(SFTP_DIR, f), subdir)
+            move(os.path.join(SFTP_DIR, f), os.path.join(subdir,f))
         
         else:
             print("directory " + path_dir + " not found, creating new directory..")
 
             subdir = os.path.join(path_dir, path_splitted[0])
             pathlib.Path(subdir).mkdir(parents=True, exist_ok=True)
-            copy(os.path.join(SFTP_DIR, f), subdir)
-
-
-
-
-        
-
-
+            move(os.path.join(SFTP_DIR, f), os.path.join(subdir,f))
         
 
 if __name__ == "__main__":

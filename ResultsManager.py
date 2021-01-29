@@ -11,6 +11,7 @@ conf_dict = get_config()
 
 SFTP_DIR = "/data01/afiss-project/images"
 DEST_DIR_ROOT = "/data01/ANALYSIS3/AFISS/LIGO/"
+REJECTED_DIR = "/data01/afiss-project/rejected"
 
 
 def sequence_conversion(mission, seqnum):
@@ -65,7 +66,7 @@ def mysql_connection():
     cursor.execute("select name,time,noticetime,triggerid,seqnum,noticeid,afisscheck from receivedsciencealert rsa \
     join instrument i on(i.instrumentid = rsa.instrumentid) join notice n \
     on (n.receivedsciencealertid = rsa.receivedsciencealertid) where i.name = 'LIGO' \
-    and n.notice!='injected.' and noticetime > '2019-06-01' and afisscheck = 0 and n.seqnum in (select max(seqnum) \
+    and n.notice!='injected.' and noticetime > '2019-06-01' and n.seqnum in (select max(seqnum) \
     from notice join receivedsciencealert rsalert on \
     (rsalert.receivedsciencealertid = notice.receivedsciencealertid ) \
     where triggerid = rsa.triggerid) order by triggerid desc")
@@ -100,22 +101,27 @@ def check_results():
         path_splitted = re.split(r"[_.]", f)
         print(f)
 
-        path_dir = os.path.join(DEST_DIR_ROOT, path_splitted[2]+"_"+path_splitted[3])
-        
-        if os.path.isdir(path_dir):
-            
-            subdir = os.path.join(path_dir, path_splitted[0])
-
-            pathlib.Path(subdir).mkdir(parents=True, exist_ok=True)
-
-            move(os.path.join(SFTP_DIR, f), os.path.join(subdir,f))
+        if (len(path_splitted)) != 5:
+            print("Invalid format file ", f), " moving in /data01/afiss-project/rejected"
+            move(os.path.join(SFTP_DIR, f), os.path.join(REJECTED_DIR,f))
         
         else:
-            print("directory " + path_dir + " not found, creating new directory..")
+            path_dir = os.path.join(DEST_DIR_ROOT, path_splitted[2]+"_"+path_splitted[3])
+        
+            if os.path.isdir(path_dir):
+            
 
-            subdir = os.path.join(path_dir, path_splitted[0])
-            pathlib.Path(subdir).mkdir(parents=True, exist_ok=True)
-            move(os.path.join(SFTP_DIR, f), os.path.join(subdir,f))
+                subdir = os.path.join(path_dir, path_splitted[0])
+
+                pathlib.Path(subdir).mkdir(parents=True, exist_ok=True)
+
+                move(os.path.join(SFTP_DIR, f), os.path.join(subdir,f))
+        
+            else:
+                print("directory " + path_dir + " not found, creating new directory..")
+                subdir = os.path.join(path_dir, path_splitted[0])
+                pathlib.Path(subdir).mkdir(parents=True, exist_ok=True)
+                move(os.path.join(SFTP_DIR, f), os.path.join(subdir,f))
         
 
 if __name__ == "__main__":

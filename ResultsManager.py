@@ -10,7 +10,7 @@ from shutil import copy, move
 conf_dict = get_config()
 
 SFTP_DIR = "/data01/afiss-project/images"
-DEST_DIR_ROOT = "/data01/ANALYSIS3/AFISS/LIGO/"
+DEST_DIR_ROOT = "/data01/AFISS-containers/local_dir/ANALYSIS3/AFISS/LIGO"
 REJECTED_DIR = "/data01/afiss-project/rejected"
 
 
@@ -21,11 +21,11 @@ def sequence_conversion(mission, seqnum):
 
     GW_ALERT_ID = 0
 
-    if MISSION == 'LIGO_TEST-alert' or MISSION == 'LIGO':
+    if MISSION == 'LIGO_TEST' or MISSION == 'LIGO':
 
         THRESHOLD = 4.0
 
-        if MISSION == 'LIGO_TEST-alert':
+        if MISSION == 'LIGO_TEST':
             CHAR = 'Ms'
         elif MISSION == 'LIGO':
             CHAR = 'S'
@@ -65,8 +65,8 @@ def mysql_connection():
 
     cursor.execute("select name,time,noticetime,triggerid,seqnum,noticeid,afisscheck from receivedsciencealert rsa \
     join instrument i on(i.instrumentid = rsa.instrumentid) join notice n \
-    on (n.receivedsciencealertid = rsa.receivedsciencealertid) where i.name = 'LIGO' \
-    and n.notice!='injected.' and noticetime > '2019-06-01' and n.seqnum in (select max(seqnum) \
+    on (n.receivedsciencealertid = rsa.receivedsciencealertid) where (i.name = 'LIGO' or i.name = 'LIGO_TEST') \
+    and n.notice!='injected.' and afisscheck = 0 and noticetime > '2019-06-01' and n.seqnum in (select max(seqnum) \
     from notice join receivedsciencealert rsalert on \
     (rsalert.receivedsciencealertid = notice.receivedsciencealertid ) \
     where triggerid = rsa.triggerid) order by triggerid desc")

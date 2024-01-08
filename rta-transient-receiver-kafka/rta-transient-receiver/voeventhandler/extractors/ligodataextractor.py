@@ -127,13 +127,13 @@ class LigoDataExtractor(TemplateDataExtractor):
         target_path = f'/tmp/skymap_{now}.tar.gz'
 
         response = requests.get(url, stream=True)
-        print(response.status_code)
+        self.logger.debug(response.status_code)
         if response.status_code == 200:
-            print("Save map "+str(response.status_code)+" "+str(url))
+            self.logger.debug("Save map "+str(response.status_code)+" "+str(url))
             with open(target_path, 'wb') as f:
                 f.write(response.raw.read())
         else:
-            print("Error downloading map "+str(url)+" status: "+str(response.status_code))
+            self.logger.debug("Error downloading map "+str(url)+" status: "+str(response.status_code))
             return ""
 
             #Implementing the code from ligo-countour tool, the level [90] is hardcoded

@@ -2,6 +2,7 @@ from voeventhandler.utilis.voeventdata import Voeventdata
 from astropy.time import Time
 import voeventparse as vp
 import numpy as np
+import logging
 
 class TemplateDataExtractor(object):
     """
@@ -14,6 +15,7 @@ class TemplateDataExtractor(object):
         """
         During the class initialization the datasource is set.
         """
+        self.logger = logging.getLogger()
         self.datasource = datasource
 
     def extract(self, voevent) -> Voeventdata:

@@ -1,4 +1,5 @@
 import json
+import logging
 from time import time
 from datetime import datetime
 from voeventhandler.utils import Timer
@@ -17,6 +18,8 @@ class VoeventHandler:
         When the class is created, the database interface and the email notifier are created.
         """
         self.voevent_sorter = VoeventSorting()
+
+        self.logger = logging.getLogger()
         
         self.db = DatabaseInterface(config_file)
 
@@ -27,11 +30,13 @@ class VoeventHandler:
 
         self.timer = Timer()
 
+
+
     def canProcessTestNotice(self):
         if self.timer.check_elapsed() < self.disable_test_notices_seconds:
-            print(f"Test notice received, but disabled for {self.disable_test_notices_seconds} seconds. latest_test_notice_time: {self.timer.get_time()}")
+            self.logger.debug(f"Test notice received, but disabled for {self.disable_test_notices_seconds} seconds. latest_test_notice_time: {self.timer.get_time()}")
             return False
-        print("Resetting timer for test notices")
+        self.logger.debug("Resetting timer for test notices")
         self.timer.reset()
         return True
         
@@ -41,7 +46,7 @@ class VoeventHandler:
         Then it will handle the email notification.
         The parameter voevent is expected to be an xml object.
         """
-        print(f"\n{datetime.now()} New notice! Handling voevent: {voevent.attrib['ivorn']}")
+        self.logger.info(f"\n{datetime.now()} New notice! Handling voevent: {voevent.attrib['ivorn']}")
         
         try:
             voeventdata = self.voevent_sorter.sort(voevent)

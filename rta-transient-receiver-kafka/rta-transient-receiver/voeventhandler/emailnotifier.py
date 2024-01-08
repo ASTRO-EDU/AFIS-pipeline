@@ -1,4 +1,5 @@
 import json
+import logging
 from voeventhandler.mail import Mail
 from voeventhandler.utilis.instrumentid import InstrumentId
 
@@ -10,6 +11,7 @@ class EmailNotifier:
         """
         When the class is created, it reads the configuration file and sets the email parameters
         """        
+        self.logger = logging.getLogger()
         with open(config_file) as f:
             self.config = json.load(f)
 
@@ -25,9 +27,9 @@ class EmailNotifier:
     def sendDiagnosticEmail(self, name, exception):
         if len(self.config["developer_email_receivers"]) > 0:
             self.mail.send_email(self.mail.buildEmailMessage(self.config["developer_email_receivers"], f"Exception alert for {name}", f"Exception: {exception}"))
-            print("Diagnostic email sent successfully!")
+            self.logger.debug("Diagnostic email sent successfully!")
             return True
-        print("No developer email receivers, skipping email")
+        self.logger.debug("No developer email receivers, skipping email")
         return False
 
     def writeAlertEmail(self, voeventdata, correlations=[]):
@@ -45,20 +47,20 @@ class EmailNotifier:
             return True
 
         if voeventdata.packet_type not in self.config["packet_with_email_notification"]:
-            print("Packet type is not in the list of packet with email notification, skipping email")
+            self.logger.debug("Packet type is not in the list of packet with email notification, skipping email")
             return False
 
         if voeventdata.is_ste and self.config["skip_ste"]:
-            print("Email notification for STE event are disabled and event is STE, skipping email")
+            self.logger.debug("Email notification for STE event are disabled and event is STE, skipping email")
             return False
 
         if voeventdata.instrument_id == InstrumentId.LIGO_TEST.value and self.config["skip_ligo_test"]:
-            print("Email notification for LIGO_TEST are disabled and event is LIGO_TEST, skipping email")
+            self.logger.debug("Email notification for LIGO_TEST are disabled and event is LIGO_TEST, skipping email")
             return False
 
         if voeventdata.instrument_id == InstrumentId.LIGO.value or voeventdata.instrument_id == InstrumentId.LIGO_TEST.value:
             if not voeventdata.is_significant() and self.config["skip_ste"]:
-                print("Email notification for LIGO not significant event are disabled and event is not significant, skipping email")
+                self.logger.debug("Email notification for LIGO not significant event are disabled and event is not significant, skipping email")
                 return False
 
         return True
@@ -68,7 +70,7 @@ class EmailNotifier:
         if voeventdata.instrument_id not in [InstrumentId.LIGO.value, InstrumentId.LIGO_TEST.value]:
             for corr in correlations:
                 if corr["instrument_name"] in ["LIGO", "LIGO_TEST"]:
-                    print("Correlation with LIGO event found, sending email")
+                    self.logger.debug("Correlation with LIGO event found, sending email")
                     return True
         
 
@@ -86,11 +88,11 @@ class EmailNotifier:
         emailMessage = self.mail.buildEmailMessage(self.config["email_receivers"], subject, body)
 
         if not self.config["enabled"]:        
-            print("The email send is disabled")
+            self.logger.debug("The email send is disabled")
             return False, emailMessage
 
         self.mail.send_email(emailMessage)
-        print("Email sent successfully!")
+        self.logger.debug("Email sent successfully!")
         return True, emailMessage
         
 

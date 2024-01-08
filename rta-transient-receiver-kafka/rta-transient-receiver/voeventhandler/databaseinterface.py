@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from pathlib import Path
 import mysql.connector
@@ -16,6 +17,8 @@ class DatabaseInterface:
         If cannot connect to the database, it raises an exception.
         Read database connection parameters from the config.json file.
         """
+
+        self.logger = logging.getLogger()
         with open(config_file) as f:
             config = json.load(f)
             db_user = config['database_user']
@@ -29,13 +32,13 @@ class DatabaseInterface:
                             host=db_host, port=db_port, database=db_name)
             self.cursor = self.cnx.cursor(dictionary=True)               
         except mysql.connector.Error as err:
-            print(f"Error connecting to the database, using the following parameters: user={db_user}, password=***, host={db_host}, port={db_port}, database={db_name}")
+            self.logger.debug(f"Error connecting to the database, using the following parameters: user={db_user}, password=***, host={db_host}, port={db_port}, database={db_name}")
             if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
-                print("Something is wrong with your user name or password, please set the current parameter as env variable")
+                self.logger.debug("Something is wrong with your user name or password, please set the current parameter as env variable")
             elif err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
-                print("Database does not exist")
+                self.logger.debug("Database does not exist")
             else:
-                print("Unexpected error")
+                self.logger.debug("Unexpected error")
 
             raise err
 
@@ -48,14 +51,14 @@ class DatabaseInterface:
         query = f"SELECT receivedsciencealertid FROM receivedsciencealert WHERE instrumentid = {voevent.instrument_id} AND triggerid = {voevent.trigger_id};"
         self.cursor.execute(query)
         check_rsa = self.cursor.fetchone()
-        print(f"Executed query: {query}\nResult {check_rsa}")
+        self.logger.debug(f"Executed query: {query}\nResult {check_rsa}")
 
         #insert in receivedsciencealert table if not already present
         #get id of the last row inserted
         if check_rsa is None:
             query = f'INSERT INTO receivedsciencealert (instrumentid, networkid, time, triggerid, ste) VALUES ({voevent.instrument_id}, {voevent.network_id}, {voevent.isoTime}, {voevent.trigger_id}, {voevent.is_ste});'
             self.cursor.execute(query)
-            print(f"Executed query: {query}")
+            self.logger.debug(f"Executed query: {query}")
             self.cnx.commit()
 
             receivedsciencealertid = self.cursor.lastrowid
@@ -69,7 +72,7 @@ class DatabaseInterface:
         query = f"SELECT seqnum FROM notice n join receivedsciencealert rsa ON (rsa.receivedsciencealertid = n.receivedsciencealertid) WHERE last = 1 AND rsa.instrumentid = {voevent.instrument_id} AND rsa.triggerid = {voevent.trigger_id}"
         self.cursor.execute(query)
         result_seqnum = self.cursor.fetchone()
-        print(f"Executed query: {query}\nResult {result_seqnum}")
+        self.logger.debug(f"Executed query: {query}\nResult {result_seqnum}")
 
         try:
             seqNum = int(result_seqnum['seqnum']) + 1 
@@ -77,21 +80,21 @@ class DatabaseInterface:
             seqNum = 0
             
         voevent.set_seq_num(seqNum)
-        print(f"SeqNum set to {seqNum}")
+        self.logger.debug(f"SeqNum set to {seqNum}")
         #last handling
         query = f"UPDATE notice SET last = 0 WHERE last = 1 AND receivedsciencealertid = {voevent.receivedsciencealertid};"
         self.cursor.execute(query)
-        print(f"Executed query: {query}")
+        self.logger.debug(f"Executed query: {query}")
         self.cnx.commit()
 
         #insert in notice table
         noticetime = datetime.utcnow().isoformat(timespec="seconds")
-        query = f"INSERT INTO notice (receivedsciencealertid, seqnum, l, b, error, contour, `last`, `type`, configuration, noticetime, notice, tstart, tstop, url, `attributes`, afisscheck) VALUES ({voevent.receivedsciencealertid}, {voevent.seqNum}, {voevent.l}, {voevent.b}, {voevent.position_error}, '{voevent.contour}', {voevent.last}, {voevent.packet_type}, '{voevent.configuration}', '{noticetime}', '{voevent.notice}', {voevent.tstart}, {voevent.tstop}, '{voevent.url}', '{json.dumps(voevent.ligo_attributes)}', 0);"
+        query = f"INSERT INTO notice (receivedsciencealertid, seqnum, l, b, error, contour, `last`, `type`, configuration, noticetime, notice, tstart, tstop, url, `attributes`, afisscheck, checked) VALUES ({voevent.receivedsciencealertid}, {voevent.seqNum}, {voevent.l}, {voevent.b}, {voevent.position_error}, '{voevent.contour}', {voevent.last}, {voevent.packet_type}, '{voevent.configuration}', '{noticetime}', '{voevent.notice}', {voevent.tstart}, {voevent.tstop}, '{voevent.url}', '{json.dumps(voevent.ligo_attributes)}', 0, 0);"
         self.cursor.execute(query)
-        print("Executed query: " + query[:170])
+        self.logger.debug("Executed query: " + query[:170])
         self.cnx.commit()
 
-        print("VoEvent inserted in the database")
+        self.logger.debug("VoEvent inserted in the database")
         return True
 
     def find_correlated_instruments(self, voeventdata):
@@ -125,12 +128,12 @@ class DatabaseInterface:
             if results_row is None:
                 return []
             
-            print(f"Correlated instruments found:")
+            self.logger.debug(f"Correlated instruments found:")
             for row in results_row:
-                print(f" - {row}")
+                self.logger.debug(f" - {row}")
 
             return results_row
 
         else:
-            print("No correlated instruments found")
+            self.logger.debug("No correlated instruments found")
             return []

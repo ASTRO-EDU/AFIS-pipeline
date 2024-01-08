@@ -1,5 +1,6 @@
 
 import smtplib
+import logging
 from email.message import EmailMessage
 
 class Mail:
@@ -8,6 +9,7 @@ class Mail:
         """
         When the class is created, it sets the email parameters
         """
+        self.logger = logging.getLogger()
         self.gmail_user = gmail_user
         self.gmail_password = gmail_password
 
@@ -29,8 +31,8 @@ class Mail:
             smtp_server.login(self.gmail_user, self.gmail_password)
             smtp_server.send_message(emailMessage)
             smtp_server.close()
-            print("Email sent successfully!")
+            self.logger.debug("Email sent successfully!")
             return True
         except Exception as ex:
-            print("Something went wrong in send_email:", ex)
+            self.logger.critical("Something went wrong in send_email:", ex)
             return False

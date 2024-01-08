@@ -36,6 +36,7 @@ class TestEmailNotifier:
         #print(emailMessages[0].as_string())
         #assert 1 == len(emailMessages)
         os.remove(configFile)
+        assert sent
 
 
     #  "ligo_preliminary.xml"

@@ -29,5 +29,3 @@ RUN dnf update -y && \
 ENV PATH=/opt/python3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV LD_LIBRARY_PATH=/opt/rh/gcc-toolset-12/root/usr/lib64
 
-# Default command
-CMD ["/bin/bash"]

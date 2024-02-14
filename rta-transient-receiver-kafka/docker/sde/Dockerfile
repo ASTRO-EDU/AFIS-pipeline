@@ -1,8 +1,8 @@
-FROM kafka_base_layer:latest
+FROM basic_layer_for_kafka_receiver:latest
 
 LABEL author="luca.castaldini@inaf.it" \
       version="1.0.0" \
-      help="Run the Kafka receiver application with: \n    > docker run --rm kafka_receiver <config_file> <output_file>"
+      help="Build this Dockerfile with: \n    > docker build -t rta_transient_kafka_receiver_sde .>"
 
 # Creazione dell'utente e configurazione sudo
 RUN useradd -m -s /bin/bash gamma && \
@@ -13,13 +13,16 @@ RUN useradd -m -s /bin/bash gamma && \
 RUN dnf install -y \
         vim \
         nano \
-        wget \
         unzip \
         net-tools \
         iproute \
         hostname && \
     pip install --upgrade pip setuptools wheel && \
     pip install pylint black mypy flake8 autopep8
+
+RUN wget https://dev.mysql.com/get/mysql84-community-release-el9-1.noarch.rpm && \
+    dnf localinstall -y mysql84-community-release-el9-1.noarch.rpm && \
+    dnf install -y mysql-community-client
 
 # Imposta l'utente e la directory di lavoro
 USER gamma
@@ -28,6 +31,7 @@ WORKDIR $wrkdir
 
 # Crea la directory di lavoro
 RUN mkdir -p "$wrkdir"
+
 
 # Comando di default e informazioni
 CMD ["echo 'Starting instance: $(date)'"]

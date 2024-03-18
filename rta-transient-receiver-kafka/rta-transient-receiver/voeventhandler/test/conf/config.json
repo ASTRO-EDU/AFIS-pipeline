@@ -2,8 +2,8 @@
     "_section_1": "database connection information",
     "database_user": "rt", 
     "database_password" : "RT@pipe18@",
-    "database_host":"127.0.0.1", 
-    "database_port":"60306",
+    "database_host":"mysql", 
+    "database_port":"3306",
     "database_name":"rt_alert_db_gcn_test",
     "disable_test_notices_seconds": 10,
 

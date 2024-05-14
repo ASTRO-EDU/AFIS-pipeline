@@ -4,58 +4,25 @@ rta-transient-receiver-kafka is a simplified way for handling VoEvents notices p
 
 This program extract the data from the xml file, then writes the notices in a MySQL database and performs several processes for detecting a possible correlation among instruments. Then it sends an email alert to the team for further analysis. 
 
-This program uses the following library as base layer: https://github.com/ASTRO-EDU/rta-transient-receiver 
-
 
 ## Installation
 
-### Singularity container
-[Singularity 2.6](https://docs.sylabs.io/guides/2.6/user-guide/quick_start.html) has been used to create the containers. 
-
-Download the containers:
-```
---> TODO
-```
-Start the container as a service:
-```
-singularity instance.start kafka_receiver.simg kafka_receiver
-```
-Start the application:
-```
-singularity run --app kafka_receiver instance://kafka_receiver $HOME/config.json $HOME/kafka_receiver.log
-```
-Two log files will be created: 
-* the one passed as argument showing a quick summary of the received notices.
-* the `$HOME/kafka_receiver_nohup.log` file with more diagnostic informations.
-
-Singularity 2.6 will automatically bind the following directories: $HOME,/tmp,/proc,/sys,/dev; If you want to specify a different path for the log file you have to bind it during the start of the container service: 
-```
-singularity instance.start -B output/dir/for/kafka:/output kafka_receiver.simg kafka_receiver
-singularity run --app kafka_receiver instance://kafka_receiver $HOME/config.json /output/kafka_receiver.log
-```
-
-To enter the container with a shell (for debugging purpose I guess):
-```
-singularity shell instance://kafka_receiver
-```
-
+### Docker container
+please check AFIS-containers repository to create AFIS enviroment:
+https://github.com/ASTRO-EDU/AFIS-containers
 
 ### Manual installation
-Check the dependecies of the `rta-transient-receiver` submodule. 
 
 Clone the repository:
 ```
-git clone --recurse-submodules git@github.com:ASTRO-EDU/rta-transient-receiver-kafka.git
+git clone git@github.com:ASTRO-EDU/AFIS-pipeline.git
 ```
 It is recommended to install the dependencies into a virtual enviromnent. For creating a  virtual enviroment: https://docs.python.org/3/library/venv.html
 ```
 python3 -m venv kafka-env
 source kafka-env/bin/activate
 cd rta-transient-receiver-kafka
-pip install -r rta-transient-receiver/requirements.lock
-pip install -r requirements.txt
-pip install rta-transient-receiver/
-pip install .
+./build.sh
 ```
 To run start the deamon use command: 
 ```
@@ -90,15 +57,18 @@ The file `rta-transient-receiver/config.template.json` shows the required key-va
     * `topics_to_subscribe`: the list of the topics to subscribe.
  
 
+## Run tests
+Running LAMP enviroment is suggested to execute tests. rta-transient-receiver-kafka needs a mysql database.
+configuration for mysql is available in `rta-transient-receiver-kafka/rta-transient-receiver/voeventhandler/test/conf`. there are several files:
+- `create_rt_and_db.sql` and `rt_alert_db_gcn_test_schema.sql` can create the database instance.
+- `config.json` contains a configuration instanco for rta-transient-receiver core logic. Check configuration parameters to connect to the database.
+to start tests run:
+
+```
+cd rta-transient-receiver-kafka
+./start_tests.sh
+```
+
 ## Troubleshooting 
 * [Kafka producer FAQs](https://gcn.nasa.gov/docs/faq#what-does-the-warning-subscribed-topic-not-available-gcnclassictextagile_grb_ground-broker-unknown-topic-or-partition-mean)
 * Runtime exceptions: If an exception occurrs during the excecution the receiver won't stop running. To check if something went wrong in the output files. 
-
-## Build the Singularity images
-Singularity 2.6 has been used.
-
-Build the base layer then the second layer:
-```
-sudo singularity build basic_layer_for_kafka_receiver.simg basic_layer_for_kafka_receiver.recipe
-sudo singularity build kafka_receiver.simg kafka_receiver.recipe
-```
